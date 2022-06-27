@@ -31,10 +31,9 @@ import { Link } from 'react-router-dom';
 
 @observer
 class KafkaConnectOverview extends PageComponent {
-    constructor(p: any) {
-        super(p);
-        // makeObservable(this);
-    }
+    // constructor(p: any) {
+    //     super(p);
+    // }
 
     initPage(p: PageInitHelper): void {
         p.title = 'Overview';
