@@ -10,9 +10,10 @@
  */
 
 import { FC, useRef, useState } from 'react';
-import { OnMount, OnChange, BeforeMount } from '@monaco-editor/react';
+import { OnMount,  BeforeMount } from '@monaco-editor/react';
 import { Uri, languages, editor } from 'monaco-editor';
 import KowlEditor, { IStandaloneCodeEditor } from '../../../misc/KowlEditor';
+const constrained = require('constrained-editor-plugin/dist/esm/constrainedEditor');
 
 interface FilterEditorProps {
     value: string;
@@ -23,10 +24,11 @@ const options: editor.IStandaloneEditorConstructionOptions  = {
     lineNumbers: 'off',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const FilterEditor: FC<FilterEditorProps> = ({ value, onValueChange }) => {
     const [isEditorReady, setIsEditorReady] = useState<boolean>(false);
-    const [editorUri, setEditorUri] = useState<Uri>();
-    const [tsWorkerClient, setTsWorkerClient] = useState<languages.typescript.TypeScriptWorker>();
+    const [, setEditorUri] = useState<Uri>();
+    const [, setTsWorkerClient] = useState<languages.typescript.TypeScriptWorker>();
 
     const editorRef = useRef<undefined | IStandaloneCodeEditor>();
 
@@ -38,6 +40,32 @@ const FilterEditor: FC<FilterEditorProps> = ({ value, onValueChange }) => {
             const worker = await monaco?.languages.typescript.getTypeScriptWorker();
             const client = await worker();
             setTsWorkerClient(client);
+            const model = editor.getModel();
+            const constrainedInstance = constrained.constrainedEditor(monaco);
+            constrainedInstance.initializeIn(editor);
+            constrainedInstance.addRestrictionsTo(model, [ {
+           range: [2, 1, 3, 1], // Range of Function definition
+            allowMultiline: true,
+            label: 'funcDefinition'
+          }]);
+
+        model?.onDidChangeContent(function (value) {
+                console.log(value);
+    /**
+     * This settimeout is added this example purpose, but this may be a better practice
+     * As Restricted Editor also hooks the onDidChangeContent callback, 
+     * if we add settimeout, it will make sure the values modifications 
+     * done by the restricted editor are finished
+     */
+
+    setTimeout(function () {
+
+// @ts-ignore
+      const values = model.getValueInEditableRanges();
+        console.log(values)
+      // console.table(values);
+    }, 0);
+  })
         }
         setIsEditorReady(true);
     };
@@ -76,23 +104,37 @@ const FilterEditor: FC<FilterEditorProps> = ({ value, onValueChange }) => {
             });
         }
     };
+// @ts-ignore
+    const _getEditorValue = async () => editorRef.current?.getModel()?.getValueInEditableRanges();
 
-    const getEditorValue = async () => editorRef.current?.getValue();
+    // const handleValueChange: OnChange = async (editorValue = '') => {
+    //     const _editorValue = (await getEditorValue()) ?? '';
+    //     console.log(_editorValue)
+    //     const result = await tsWorkerClient!.getEmitOutput(editorUri!.toString());
+    //     setImmediate(() => onValueChange(editorValue, result.outputFiles[0].text));
+    // };
 
-    const handleValueChange: OnChange = async () => {
-        const editorValue = (await getEditorValue()) ?? '';
-        const result = await tsWorkerClient!.getEmitOutput(editorUri!.toString());
-        setImmediate(() => onValueChange(editorValue, result.outputFiles[0].text));
-    };
+//     const getValue = (_input: string) => `//this is a comment
+// function() {
+// test
+// }
+// //this is the end
+// `
 
     return (
         <KowlEditor
-            value={value}
+            value={[
+      'const utils = {};',
+      'function addKeysToUtils(){',
+      '',
+      '}',
+      'addKeysToUtils();'
+    ].join('\n')}
             height={200}
             width="100%"
             onMount={handleOnMount}
-            onChange={handleValueChange}
             beforeMount={handleBeforeMount}
+
             language="typescript"
             theme="vs-light"
             options={options}

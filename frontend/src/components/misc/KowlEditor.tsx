@@ -54,7 +54,7 @@ export default function KowlEditor(props: KowlEditorProps) {
     return <Editor
         loading={<LoadingPlaceholder />}
         wrapperProps={{ className: 'kowlEditor' }}
-        defaultValue={'\n'.repeat(2)}
+    
         options={options}
         {...rest}
     />
